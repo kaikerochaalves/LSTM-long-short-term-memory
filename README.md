@@ -1,4 +1,4 @@
-# LSTM-long-short-term-memory
+# LSTM (Long Short-Term Memory)
 
 LSTM is used in this example for time series forecasting. More information about LSTM can be found on my [website](https://kaikealves.weebly.com/neural-networks.html).
 
