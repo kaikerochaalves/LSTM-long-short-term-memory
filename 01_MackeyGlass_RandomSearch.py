@@ -10,6 +10,8 @@ import numpy as np
 import math
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_absolute_percentage_error
+from permetrics.regression import RegressionMetric
 import statistics as st
 import matplotlib.pyplot as plt
 
@@ -57,21 +59,21 @@ sample_n = 6000;	# total no. of samples, excluding the given initial condition
 # MG = mackey_glass(N, a = a, b = b, c = c, d = d, e = e, initial = initial)
 MG = MackeyGlass(a = a, b = b, tau = tau, x0 = x0, sample_n = sample_n)
 
-def Create_Leg(data, ncols, leg, leg_output = None):
-    X = np.array(data[leg*(ncols-1):].reshape(-1,1))
+def Create_lag(data, ncols, lag, lag_output = None):
+    X = np.array(data[lag*(ncols-1):].reshape(-1,1))
     for i in range(ncols-2,-1,-1):
-        X = np.append(X, data[leg*i:leg*i+X.shape[0]].reshape(-1,1), axis = 1)
+        X = np.append(X, data[lag*i:lag*i+X.shape[0]].reshape(-1,1), axis = 1)
     X_new = np.array(X[:,-1].reshape(-1,1))
     for col in range(ncols-2,-1,-1):
         X_new = np.append(X_new, X[:,col].reshape(-1,1), axis=1)
-    if leg_output == None:
+    if lag_output == None:
         return X_new
     else:
-        y = np.array(data[leg*(ncols-1)+leg_output:].reshape(-1,1))
+        y = np.array(data[lag*(ncols-1)+lag_output:].reshape(-1,1))
         return X_new[:y.shape[0],:], y
 
 # Defining the atributes and the target value
-X, y = Create_Leg(MG, ncols = 4, leg = 6, leg_output = 85)
+X, y = Create_lag(MG, ncols = 4, lag = 6, lag_output = 85)
 
 # Spliting the data into train and test
 X_train, X_test = X[201:3201,:], X[5001:5501,:]
@@ -200,9 +202,6 @@ early_stopping_cb = keras.callbacks.EarlyStopping(patience=10,restore_best_weigh
 # Train the model
 history = model.fit(X_train, y_train, epochs = 100, validation_data=(X_val, y_val), callbacks=[checkpoint_cb, early_stopping_cb])
 
-# Compute the mse error
-#mse_test = model.evaluate(X_test, y_test)
-
 # Implement the prediction method
 y_pred = model.predict(X_test)
 
@@ -210,12 +209,22 @@ y_pred = model.predict(X_test)
 # Compute the Root Mean Square Error
 RMSE = math.sqrt(mean_squared_error(y_test, y_pred))
 print("RMSE:", RMSE)
+# Compute the Normalized Root Mean Square Error
+NRMSE = RegressionMetric(y_test, y_pred).normalized_root_mean_square_error()
+print("NRMSE:", NRMSE)
 # Compute the Non-Dimensional Error Index
 NDEI= RMSE/st.stdev(y_test.flatten())
 print("NDEI:", NDEI)
 # Compute the Mean Absolute Error
 MAE = mean_absolute_error(y_test, y_pred)
 print("MAE:", MAE)
+# Compute the Mean Absolute Percentage Error
+MAPE = mean_absolute_percentage_error(y_test, y_pred)
+print("MAPE:", MAPE)
+
+# Results
+LSTM = f'{Model} & {NRMSE:.5f} & {NDEI:.5f} & {MAPE*100:.2f} & -'
+print(f"\n{LSTM}")
 
 # Plot the graphic
 plt.figure(figsize=(19.20,10.80))
@@ -231,10 +240,6 @@ plt.show()
 
 # Print the summary of the model
 print(model.summary())
-
-# Results for the paper
-LSTM = f'{Model} & {RMSE:.5f} & {NDEI:.5f} & {MAE:.5f} & -'
-print(f"\n{LSTM}")
 
 # Plot the model architeture
 # You must install pydot (`pip install pydot`) and install graphviz (https://graphviz.gitlab.io/download/).
